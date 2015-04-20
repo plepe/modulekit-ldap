@@ -122,4 +122,24 @@ function ldap_user_get_fullname($username) {
   return $result[0]['displayname'][0];
 }
 
+function ldap_authenticate_check($user, $passwd) {
+  global $ldap;
+  global $ds;
 
+  if(!$passwd)
+    return false;
+
+  $ds=ldap_connect($ldap['host'],$ldap['port']);
+  ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
+  $r =ldap_search( $ds, $ldap['basedn'], 'uid=' . $user);
+  if ($r) {
+    $result = ldap_get_entries( $ds, $r);
+    if ($result[0]) {
+      if (ldap_bind( $ds, $result[0]['dn'], $passwd) ) {
+	return $result[0];
+      }
+    }
+  }
+
+  return false;
+}
