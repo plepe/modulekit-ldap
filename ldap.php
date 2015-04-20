@@ -127,7 +127,7 @@ function ldap_authenticate_check($user, $passwd) {
   global $ds;
 
   if(!$passwd)
-    return false;
+    return "No password supplied";
 
   $ds=ldap_connect($ldap['host'],$ldap['port']);
   ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
@@ -135,11 +135,13 @@ function ldap_authenticate_check($user, $passwd) {
   if ($r) {
     $result = ldap_get_entries( $ds, $r);
     if ($result[0]) {
-      if (ldap_bind( $ds, $result[0]['dn'], $passwd) ) {
+      if (@ldap_bind( $ds, $result[0]['dn'], $passwd) ) {
 	return $result[0];
       }
+      else
+	return ldap_error($ds);
     }
   }
 
-  return false;
+  return "Invalid credentials";
 }
