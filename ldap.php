@@ -145,3 +145,25 @@ function ldap_authenticate_check($user, $passwd) {
 
   return "Invalid credentials";
 }
+
+function ldap_shadowExpire_date($t=null) {
+  if($t === null)
+    $t = time();
+
+  return (int)($t / 24 / 60 / 60);
+}
+
+function ldap_shadowExpire_timestamp($expire_date) {
+  return (int)$expire_date * 24 * 60 * 60;
+}
+
+function ldap_get_expiry_timestamp($user) {
+  $ret = false;
+  if($user['shadowexpire'])
+    $ret = ldap_shadowExpire_timestamp($user['shadowexpire'][0]);
+  if($user['sambakickofftime'] &&
+     (($ret === false) || ($user['sambakickofftime'][0] < $ret)))
+    $ret = (int)$user['sambakickofftime'][0];
+
+  return $ret;
+}
