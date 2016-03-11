@@ -190,3 +190,117 @@ function ldap_reread_account(&$account) {
   $account = ldap_get_entries($ldap['conn'], $r);
   $account = $account[0];
 }
+
+/**
+ * activate password
+ * @return boolean/string true=success, false=not deactivated, string=error occured
+ */
+function ldap_shadow_account_activate(&$account) {
+  global $ldap;
+
+  if(!in_array('userpassword', $account))
+    return false;
+
+  if(preg_match("/^(\{[A-Z0-9]*\})(\!)?(.*)$/", $account['userpassword'][0], $m)) {
+    // if ! is in userpassword hash, account is deactivated
+    if($m[2] == "!") {
+      $ldap_mod_replace = array(
+        'userpassword' => "{$m[1]}{$m[3]}"
+      );
+
+      ldap_mod_replace($ldap['conn'], $account['dn'], $ldap_mod_replace);
+
+      ldap_reread_account($account);
+
+      return true;
+    }
+    else
+      return false;
+  }
+  else
+    return "Can't parse field userPassword";
+}
+
+function ldap_shadow_account_deactivate(&$account) {
+  global $ldap;
+
+  if(!in_array('userpassword', $account))
+    return false;
+
+  if(preg_match("/^(\{[A-Z0-9]*\})(\!)?(.*)$/", $account['userpassword'][0], $m)) {
+    // if ! is in userpassword hash, account is already deactivated
+    if($m[2] != "!") {
+      $ldap_mod_replace = array(
+        'userpassword' => "{$m[1]}!{$m[3]}"
+      );
+
+      ldap_mod_replace($ldap['conn'], $account['dn'], $ldap_mod_replace);
+
+      ldap_reread_account($account);
+
+      return true;
+    }
+    else
+      return false;
+  }
+  else
+    return "Can't parse field userPassword";
+}
+
+/**
+ * activate password
+ * @return boolean/string true=success, false=not deactivated, string=error occured
+ */
+function ldap_samba_account_activate(&$account) {
+  global $ldap;
+
+  if(!in_array("sambaSamAccount", $account['objectclass']))
+    return false;
+
+  if(!in_array('sambaacctflags', $account))
+    return false;
+
+  // if sambaAcctFlags contains 'D', account is deactivated
+  if(strpos($account['sambaacctflags'][0], "D") !== false) {
+    $ldap_mod_replace = array(
+      'sambaacctflags' => sprintf("[%16s]", trim(strtr(substr($account['sambaacctflags'][0], 1, -1), array("D" => "")))),
+    );
+
+    ldap_mod_replace($ldap['conn'], $account['dn'], $ldap_mod_replace);
+
+    ldap_reread_account($account);
+
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * deactivate password
+ * @return boolean/string true=success, false=not deactivated, string=error occured
+ */
+function ldap_samba_account_deactivate(&$account) {
+  global $ldap;
+
+  if(!in_array("sambaSamAccount", $account['objectclass']))
+    return false;
+
+  if(!in_array('sambaacctflags', $account))
+    return false;
+
+    // if sambaAcctFlags contains 'D', account is already deactivated
+  if(strpos($account['sambaacctflags'][0], "D") === false) {
+    $ldap_mod_replace = array(
+      'sambaacctflags' => sprintf("[%16s]", trim(substr($account['sambaacctflags'][0], 1, -1)) . "D"),
+    );
+
+    ldap_mod_replace($ldap['conn'], $account['dn'], $ldap_mod_replace);
+
+    ldap_reread_account($account);
+
+    return true;
+  }
+
+  return false;
+}
