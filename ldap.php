@@ -20,6 +20,9 @@ function ldap_find_nextuid($uid_range) {
   }
   $uid++;
 
+  if($uid > $uid_range[1])
+    return null;
+
   return $uid;
 }
 
@@ -43,6 +46,9 @@ function ldap_find_nextgid($gid_range) {
     }
   }
   $gid++;
+
+  if($gid > $gid_range[1])
+    return null;
 
   return $gid;
 }
