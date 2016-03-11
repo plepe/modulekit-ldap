@@ -173,3 +173,20 @@ function ldap_get_expiry_timestamp($user) {
 
   return $ret;
 }
+
+/**
+ * reread account data
+ */
+function ldap_reread_account(&$account) {
+  global $ldap;
+
+  $ldap_attributes = array();
+  foreach($account as $k => $v) {
+    if(!in_array($k, array('dn', 'count')) && !is_int($k))
+      $ldap_attributes[] = $k;
+  }
+
+  $r=ldap_search($ldap['conn'], $account['dn'], 'objectClass=*', $ldap_attributes);
+  $account = ldap_get_entries($ldap['conn'], $r);
+  $account = $account[0];
+}
