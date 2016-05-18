@@ -304,3 +304,34 @@ function ldap_samba_account_deactivate(&$account) {
 
   return false;
 }
+
+/**
+ * @return boolean/null true=active false=locked null=can't tell
+ */
+function ldap_shadow_account_isactive($account) {
+  if(!in_array('userpassword', $account))
+    return null;
+
+  if(!preg_match("/^(\{[A-Z0-9]*\})(\!)?(.*)$/", $account['userpassword'][0], $m))
+    return null;
+
+  return $m[2] != "!";
+}
+
+/**
+ * @return boolean/null true=active false=locked null=can't tell
+ */
+function ldap_samba_account_isactive($account) {
+  if(!in_array('objectclass', $account))
+    return null;
+
+  // no samba active -> locked
+  if(!in_array("sambaSamAccount", $account['objectclass']))
+    return false;
+
+  if(!in_array('sambaacctflags', $account))
+    return null;
+
+  // if sambaAcctFlags contains 'D', account is deactivated
+  return strpos($account['sambaacctflags'][0], "D") === false;
+}
