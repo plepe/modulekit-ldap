@@ -142,6 +142,10 @@ function ldap_authenticate_check($user, $passwd) {
     $result = ldap_get_entries( $ds, $r);
     if ($result[0]) {
       if (@ldap_bind( $ds, $result[0]['dn'], $passwd) ) {
+        // reload account data as authenticated user
+        $r = ldap_search( $ds, $ldap['basedn'], 'uid=' . $user);
+        $result = ldap_get_entries( $ds, $r);
+
 	return $result[0];
       }
       else
