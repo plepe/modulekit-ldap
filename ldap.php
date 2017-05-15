@@ -339,3 +339,75 @@ function ldap_samba_account_isactive($account) {
   // if sambaAcctFlags contains 'D', account is deactivated
   return strpos($account['sambaacctflags'][0], "D") === false;
 }
+
+/**
+ * @return list of all users matching the given $str
+ */
+$ldap_all_user_names = null;
+function ldap_search_user ($str) {
+  global $ldap_all_user_names;
+  global $ldap;
+
+  // build user database
+  if ($ldap_all_user_names === null) {
+    $r = ldap_search($ldap['conn'], $ldap['ubasedn'], 'objectClass=*', array('cn', 'displayname'));
+    $result = ldap_get_entries($ldap['conn'], $r);
+    $ldap_all_user_names = array();
+    for ($i = 0; $i < $result['count']; $i++) {
+      if (isset($result[$i]['displayname']) && isset($result[$i]['cn']))
+        $ldap_all_user_names[$result[$i]['cn'][0]] = $result[$i]['displayname'][0];
+    }
+  }
+
+  // build search regexp
+  $regexp = '';
+  for ($i = 0; $i < strlen($str); $i++) {
+    $c = substr($str, $i, 1);
+
+    switch (strtolower($c)) {
+      case 'a':
+      case 'ä':
+      case 'á':
+        $r = '(a|ä|á|ae)'; break;
+      case 'c':
+        $r = '(c|č|ç)'; break;
+      case 'e':
+      case 'é':
+        $r = '(e|é)'; break;
+      case 'i':
+      case 'í':
+        $r = '(i|í)'; break;
+      case 'o':
+      case 'ö':
+      case 'ó':
+        $r = '(o|ö|ó|oe)'; break;
+      case 'r':
+      case 'ř':
+        $r = '(r|ř)'; break;
+      case 's':
+      case 'š':
+        $r = '(s|š)'; break;
+      case 'u':
+      case 'ü':
+      case 'ú':
+        $r = '(u|ü|ú|ue)'; break;
+      default:
+        $r = $c;
+    }
+
+    $regexp .= $r;
+  }
+
+  // now query
+  $ret = array();
+  foreach ($ldap_all_user_names as $uid => $name) {
+    if (preg_match("/$regexp/i", $name)) {
+      $ret[$uid] = $name;
+    }
+    else if (preg_match("/$regexp/i", $uid)) {
+      $ret[$uid] = $name;
+    }
+  }
+
+  return $ret;
+}
