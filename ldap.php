@@ -128,6 +128,46 @@ function ldap_user_get_fullname($username) {
   return $result[0]['displayname'][0];
 }
 
+/**
+ * return a list of all groups (as ldap_search result)
+ * @param string $username Username of the user
+ * @param string[] $attributes list of attributes to return
+ * @return mixed[] an ldap_search result including 'count' values
+ */
+function ldap_user_groups ($username, $attributes=null) {
+  global $ldap;
+
+  // First get gidNumber from user account
+  $r = ldap_search($ldap['conn'], $ldap['ubasedn'], "uid={$username}", array('gidNumber'));
+  if(!$r) {
+    trigger_error('ldap_user_groups: ' . ldap_error($ldap['conn']), E_USER_WARNING);
+    return null;
+  }
+
+  $user = ldap_get_entries($ldap['conn'], $r);
+
+  if ($user['count'] === 0) {
+    trigger_error("ldap_user_groups: no such user", E_USER_WARNING);
+    return null;
+  }
+
+  $gidNumber = $user[0]['gidnumber'][0];
+
+  // query for groups with user membership and the group with the user's gidNumber
+  if ($attributes === null)
+    $r = ldap_search($ldap['conn'], $ldap['gbasedn'], "(|(memberUid={$username})(gidNumber={$gidNumber}))");
+  else
+    $r = ldap_search($ldap['conn'], $ldap['gbasedn'], "(|(memberUid={$username})(gidNumber={$gidNumber}))", $attributes);
+
+  if(!$r) {
+    trigger_error('ldap_user_groups: ' . ldap_error($ldap['conn']), E_USER_WARNING);
+    return null;
+  }
+
+  // Done
+  return ldap_get_entries($ldap['conn'], $r);
+}
+
 function ldap_authenticate_check($user, $passwd) {
   global $ldap;
   global $ds;
