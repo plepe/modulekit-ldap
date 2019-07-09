@@ -1,4 +1,8 @@
 <?php
+if (!array_key_exists('uid_attribute', $ldap)) {
+  $ldap['uid_attribute'] = 'uid';
+}
+
 // find next uid after highest uid in range
 function ldap_find_nextuid($uid_range) {
   global $ldap;
@@ -117,7 +121,7 @@ function ldap_admin_connect() {
 function ldap_user_get_fullname($username) {
   global $ldap;
 
-  $r=ldap_search($ldap['conn'], $ldap['ubasedn'], "uid={$username}", array("displayName"));
+  $r=ldap_search($ldap['conn'], $ldap['ubasedn'], "{$ldap['uid_attribute']}={$username}", array("displayName"));
   if(!$r)
     return null;
   
@@ -138,7 +142,7 @@ function ldap_user_groups ($username, $attributes=null) {
   global $ldap;
 
   // First get gidNumber from user account
-  $r = ldap_search($ldap['conn'], $ldap['ubasedn'], "uid={$username}", array('gidNumber'));
+  $r = ldap_search($ldap['conn'], $ldap['ubasedn'], "{$ldap['uid_attribute']}={$username}", array('gidNumber'));
   if(!$r) {
     trigger_error('ldap_user_groups: ' . ldap_error($ldap['conn']), E_USER_WARNING);
     return null;
@@ -186,13 +190,13 @@ function ldap_authenticate_check($user, $passwd) {
       return "Can't bind to server";
   }
 
-  $r =ldap_search( $ds, $ldap['basedn'], 'uid=' . $user);
+  $r =ldap_search( $ds, $ldap['basedn'], "{$ldap['uid_attribute']}={$user}");
   if ($r) {
     $result = ldap_get_entries( $ds, $r);
     if ($result[0]) {
       if (@ldap_bind( $ds, $result[0]['dn'], $passwd) ) {
         // reload account data as authenticated user
-        $r = ldap_search( $ds, $ldap['basedn'], 'uid=' . $user);
+        $r = ldap_search( $ds, $ldap['basedn'], "{$ldap['uid_attribute']}={$user}");
         $result = ldap_get_entries( $ds, $r);
 
 	return $result[0];
