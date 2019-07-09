@@ -464,3 +464,24 @@ function ldap_search_user ($str) {
 
   return $ret;
 }
+
+// creates a good crypted LDAP compatible password hash
+function ldap_crypt ($passwd) {
+  global $ldap;
+
+  if ($ldap['crypt_function'] === 'unicodePwd') {
+    // install php-mbstring!
+    return mb_convert_encoding("\"{$passwd}\"", "UTF-16LE", "UTF-8");
+  }
+  else if ($ldap['crypt_function'] === 'SSHA/SHA1') {
+    // copied from LDAP Account Manager
+    $rand = abs(hexdec(bin2hex(random_bytes(5))));
+    $salt0 = substr(pack("h*", md5($rand)), 0, 8);
+    $salt = substr(pack("H*", sha1($salt0 . $passwd)), 0, 4);
+    return '{SSHA}' . base64_encode(hex2bin(sha1($passwd . $salt)));
+  }
+  else {
+    $salt = '$6$' . substr(base64_encode(random_bytes(7)), 0, 8);
+    return '{CRYPT}' . crypt($passwd, $salt);
+  }
+}
