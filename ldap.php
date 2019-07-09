@@ -175,7 +175,10 @@ function ldap_authenticate_check($user, $passwd) {
   if(!$passwd)
     return "No password supplied";
 
-  $ds=ldap_connect($ldap['host'],$ldap['port']);
+  $ds = ldap_connect($ldap['host'],$ldap['port']);
+  if (!$ds) {
+    return "Can't connect to server";
+  }
   ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
   $r =ldap_search( $ds, $ldap['basedn'], 'uid=' . $user);
   if ($r) {
