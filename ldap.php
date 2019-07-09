@@ -180,6 +180,12 @@ function ldap_authenticate_check($user, $passwd) {
     return "Can't connect to server";
   }
   ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
+
+  if ($ldap['bind_user']) {
+    if (!ldap_bind($ds, $ldap['bind_user'], $ldap['bind_password']))
+      return "Can't bind to server";
+  }
+
   $r =ldap_search( $ds, $ldap['basedn'], 'uid=' . $user);
   if ($r) {
     $result = ldap_get_entries( $ds, $r);
