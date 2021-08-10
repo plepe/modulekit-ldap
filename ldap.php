@@ -481,7 +481,7 @@ function ldap_crypt ($passwd) {
     return '{SSHA}' . base64_encode(hex2bin(sha1($passwd . $salt)));
   }
   else {
-    $salt = '$6$' . substr(base64_encode(random_bytes(7)), 0, 8);
+    $salt = '$6$' . substr(base64_encode(random_bytes(16)), 0, 16);
     return '{CRYPT}' . crypt($passwd, $salt);
   }
 }
