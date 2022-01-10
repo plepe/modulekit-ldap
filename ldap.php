@@ -465,6 +465,38 @@ function ldap_search_user ($str) {
   return $ret;
 }
 
+/**
+ * Returns a random number.
+ *
+ * @return int random number
+ *
+ * Source: LDAP Account Manager
+ */
+function getRandomNumber() {
+  if (function_exists('openssl_random_pseudo_bytes')) {
+    return abs(hexdec(bin2hex(openssl_random_pseudo_bytes(5))));
+  }
+  return abs(mt_rand());
+}
+
+/**
+ * Calculates a password salt of the given length.
+ *
+ * @param int $len salt length
+ * @return String the salt string
+ *
+ * Source: LDAP Account Manager
+ */
+function generateSalt($len) {
+  $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./';
+  $salt = '';
+  for ($i = 0; $i < $len; $i++) {
+    $pos = abs(getRandomNumber() % strlen($chars));
+    $salt .= $chars[$pos];
+  }
+  return $salt;
+}
+
 // creates a good crypted LDAP compatible password hash
 function ldap_crypt ($passwd) {
   global $ldap;
@@ -474,11 +506,9 @@ function ldap_crypt ($passwd) {
     return mb_convert_encoding("\"{$passwd}\"", "UTF-16LE", "UTF-8");
   }
   else if ($ldap['crypt_function'] === 'SSHA/SHA1') {
-    // copied from LDAP Account Manager
-    $rand = abs(hexdec(bin2hex(random_bytes(5))));
-    $salt0 = substr(pack("h*", md5($rand)), 0, 8);
-    $salt = substr(pack("H*", sha1($salt0 . $passwd)), 0, 4);
-    return '{SSHA}' . base64_encode(hex2bin(sha1($passwd . $salt)));
+    // Source: LDAP Account Manager
+    $salt = generateSalt(4);
+    return '{SSHA}' . base64_encode(hex2bin(sha1($passwd . $salt)) . $salt);
   }
   else {
     $salt = '$6$' . substr(base64_encode(random_bytes(16)), 0, 16);
